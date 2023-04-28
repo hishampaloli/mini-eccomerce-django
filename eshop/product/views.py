@@ -89,4 +89,4 @@ def delete_product(request, pk):
         i.delete()
 
     product.delete()
-    return Response({'details': "Product is deleted", status=status.HTTP_200_OK})
+    return Response({'details': "Product is deleted"}, status=status.HTTP_200_OK)
