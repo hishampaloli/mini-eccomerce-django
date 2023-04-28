@@ -21,3 +21,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('product.urls'))
 ]
+
+handler404 = 'utils.error_views.handler404'
+handler500 = 'utils.error_views.handler500'
