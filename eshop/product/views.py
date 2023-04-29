@@ -4,9 +4,10 @@ from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from django.db.models import Avg
 
-from .models import Product, ProductImages
-from .serializer import ProductSerializer, ProductImagesSerializer
+from .models import Product, ProductImages, Review
+from .serializer import ProductSerializer, ProductImagesSerializer, ReviewSerializer
 from .filters import ProductsFilter
 
 # Create your views here.
@@ -70,9 +71,9 @@ def update_product(request, pk):
 
     product = get_object_or_404(Product, id=pk)
 
-    if(request.user != product.user):
+    if (request.user != product.user):
         return Response({'error': "only the owner of this account can edit this"}, status=status.HTTP_403_FORBIDDEN)
-    
+
     product.name = request.data['name']
     product.description = request.data['description']
     product.brand = request.data['brand']
@@ -99,3 +100,80 @@ def delete_product(request, pk):
 
     product.delete()
     return Response({'details': "Product is deleted"}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_review(request, pk):
+    data = request.data
+    user = request.user
+    product = get_object_or_404(Product, id=pk)
+
+    review = product.reviews.filter(user=user)
+
+    if data['rating'] <= 0 or data['rating'] > 5:
+        return Response({'error': 'Please select a rating between 1-5'}, status=status.HTTP_400_BAD_REQUEST)
+    elif review.exists():
+        return Response({'error': 'You have aldready posted a review'})
+    else:
+        new_review = Review.objects.create(
+            user=user,
+            product=product,
+            rating=data['rating'],
+            comment=data['comment']
+        )
+
+        rating = product.reviews.aggregate(avg_rating=Avg('rating'))
+        product.rating = rating['avg_rating']
+        product.save()
+
+        serializer = ReviewSerializer(new_review, many=False)
+        return Response({'details': 'Your review as added', 'review': serializer.data})
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_review(request, pk):
+    user = request.user
+    product = get_object_or_404(Product, id=pk)
+    data = request.data
+
+    review = product.reviews.filter(user=user)
+
+    if review.exists():
+        new_review = {'rating': data['rating'], 'comment': data['comment']}
+        review.update(**new_review)
+    
+        rating = product.reviews.aggregate(avg_rating=Avg('rating'))
+        product.ratings = rating['avg_rating']
+        product.save()
+
+        serializer = ReviewSerializer(review, many=False)
+        return Response({'detail': 'Review Updated'}, status=status.HTTP_201_CREATED)
+        
+    else:
+        return Response({'error': 'No reviews posted by you found'}, status=status.HTTP_400_BAD_REQUEST)
+        
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_review(request, pk):
+    user = request.user
+    product = get_object_or_404(Product, id=pk)
+
+    review = product.reviews.filter(user=user)
+
+    if review.exists():
+        review.delete()
+
+        rating = product.reviews.aggregate(avg_rating=Avg('rating'))
+
+        if rating['avg_rating'] is None:
+            rating['avg_rating'] = 0
+
+        product.ratings = rating['avg_rating']    
+        product.save()
+        return Response({'detail':'Review deleted'})
+    else:
+        return Response({'error': 'No Reviews found'}, status=status.HTTP_400_BAD_REQUEST)    
