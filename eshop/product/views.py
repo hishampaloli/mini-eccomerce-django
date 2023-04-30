@@ -177,3 +177,12 @@ def delete_review(request, pk):
         return Response({'detail':'Review deleted'})
     else:
         return Response({'error': 'No Reviews found'}, status=status.HTTP_400_BAD_REQUEST)    
+
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def all_reviews_under_product(request, pk):
+    review = Review.objects.filter(product=pk)
+    serializer = ReviewSerializer(review, many=True)
+    return Response({'reviews': serializer.data})
