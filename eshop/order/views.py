@@ -212,3 +212,24 @@ def stripe_webhook(request):
             product.stock -= item.quantity
             product.save()
         return Response({'details': 'Payment succesfull'})
+
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_my_orders(request):
+
+    user = request.user
+    order = Order.objects.filter(user=user)
+    serializer = OrderSerializer(order, many=True)
+    return Response({'order': serializer.data})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def get_orders_under_product(request,pk):
+
+    orders = Order.objects.filter(orderitems__product=pk)
+    serializer = OrderSerializer(orders, many=True)
+    return Response({'orders': serializer.data})
+
