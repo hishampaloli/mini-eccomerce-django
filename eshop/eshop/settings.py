@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'product.apps.ProductConfig',
     'account.apps.AccountConfig',
     'order.apps.OrderConfig',
+    'cart.apps.CartConfig',
     'storages',
     'rest_framework_simplejwt',
 ]
