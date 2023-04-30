@@ -56,3 +56,52 @@ def update_me(request):
     user.save()
     serializer = UserSerializer(user, many = False)
     return Response(serializer.data)    
+
+
+
+
+@api_view(['POST'])
+def forgot_password(request):
+    data = request.data
+    user = get_object_or_404(User, email=data['email'])
+
+    token = get_random_string(40)
+    expire_date = datetime.now() + timedelta(minutes=30)
+
+    user.profile.reset_password_token = token
+    user.profile.reset_password_expire = expire_date
+
+    user.profile.save()
+    host = get_current_host(request)
+
+    link = "{host}/api/reset_password/{token}".format(host=host, token=token)
+    body = f'Your password reset link is: {link}'
+
+    send_mail(
+        "Password reser for ecommerce",
+        body,
+        "noreply@ecom.com",
+        [data['email']]
+    )
+
+    return Response({'details': 'Reset link send to: {email}'.format(email=data['email'])})
+
+
+@api_view(['POST'])
+def reset_password(request, token):
+    data = request.data
+
+    user = get_object_or_404(User, profile__reset_password_token=token)
+    if user.profile.reset_password_expire.replace(tzinfo=None) < datetime.now():
+        return Response({'error': 'Token is expired'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if data['password'] != data['confirmPassword']:
+        return Response({'error': 'Password not matching'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user.password = make_password(data['password'])
+    user.profile.reset_password_token = ""
+    user.profile.reset_password_expire = None
+    user.profile.save()
+    user.save()
+
+    return Response({'details': 'Password reset successfully'}, status=status.HTTP_201_CREATED) 
