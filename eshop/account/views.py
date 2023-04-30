@@ -131,3 +131,18 @@ def block_user(request,pk):
 
     serializer = UserDataSerializer(user, many=False)    
     return Response(serializer.data)    
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def change_password(request):
+    data = request.data
+
+    user = authenticate(username=request.user.username,
+                        password=data['old_password'])
+    if user is not None:
+        user.password = make_password(data['new_password'])
+        user.save()
+        return Response({'message': 'Password is updated.'})
+    else:
+        return Response({'message': 'Password is incorrect.'})
