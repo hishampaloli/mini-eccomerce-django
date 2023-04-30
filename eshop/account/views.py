@@ -105,3 +105,29 @@ def reset_password(request, token):
     user.save()
 
     return Response({'details': 'Password reset successfully'}, status=status.HTTP_201_CREATED) 
+
+
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def all_users(request):
+
+    users = User.objects.all()
+    serializer = UserDataSerializer(users, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def block_user(request,pk):
+
+    user = get_object_or_404(User, id=pk)
+    data = request.data
+    if user:
+        user.profile.isBlocked = data["isBlocked"]
+        user.profile.save()
+        user.save()
+
+    serializer = UserDataSerializer(user, many=False)    
+    return Response(serializer.data)    
