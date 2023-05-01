@@ -1,36 +1,16 @@
 from rest_framework.views import exception_handler
-from http import HTTPStatus
 from rest_framework.response import Response
-from rest_framework import status
 
 
 def custom_exception_handler(exc, context):
     response = exception_handler(exc, context)
-
+    print(response)
     if response is not None:
-        http_code_to_message = {v.value: v.description for v in HTTPStatus}
-
-        error_payload = {
-            "error": {
-                "status_code": 0,
-                "message": "",
-                "details": []
-            }
+        response.data = {
+            'status': False,
+            'statusCode': response.status_code,
+            'ip': context['request'].META.get('REMOTE_ADDR', None),
+            'error': response.data.get('detail', 'Unknown Error'),
+            'details': response.data
         }
-
-        error = error_payload["error"]
-        status_code = response.status_code
-
-        error["status_code"] = status_code
-        error["message"] = http_code_to_message[status_code]
-        error["details"] = response.data
-
-        response.data = error_payload
-
-        return response
-    # else:
-    #     error = {
-    #         "error": "Something went wrong."
-    #     }
-
-    #     return Response(error,status= status.HTTP_500_INTERNAL_SERVER_ERROR)
+    return Response(response.data, status=response.status_code)

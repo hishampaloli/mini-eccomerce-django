@@ -10,6 +10,10 @@ from .models import Product, ProductImages, Review
 from .serializer import ProductSerializer, ProductImagesSerializer, ReviewSerializer
 from .filters import ProductsFilter
 
+
+from utils.custom_auth import ManagerAuthentication
+from utils.custom_response import CustomResponse
+from utils.custom_exception_handler import custom_exception_handler
 # Create your views here.
 
 
@@ -33,7 +37,7 @@ def get_products(request):
 def get_product(request, pk):
     product = get_object_or_404(Product, id=pk)
     serialize = ProductSerializer(product, many=False)
-    return Response({"product": serialize.data})
+    return CustomResponse(data={'product': serializer.data}, statusCode=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
